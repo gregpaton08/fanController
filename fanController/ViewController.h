@@ -9,6 +9,9 @@
 #import <UIKit/UIKit.h>
 
 @interface ViewController : UIViewController <NSStreamDelegate> {
+    NSString *host;
+    UInt32 port;
+    
     NSInputStream *inputStream;
     NSOutputStream *outputStream;
 }
