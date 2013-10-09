@@ -14,7 +14,19 @@
     
     NSInputStream *inputStream;
     NSOutputStream *outputStream;
+    
+    NSThread *updateThread;
 }
 @property (weak, nonatomic) IBOutlet UIButton *bt_onOff;
+@property (weak, nonatomic) IBOutlet UIButton *bt_refresh;
+@property (weak, nonatomic) IBOutlet UILabel *lb_weather;
+@property (weak, nonatomic) IBOutlet UILabel *lb_inTemp;
+@property (weak, nonatomic) IBOutlet UILabel *lb_in;
+@property (weak, nonatomic) IBOutlet UILabel *lb_outTemp;
+@property (weak, nonatomic) IBOutlet UILabel *lb_out;
+@property (weak, nonatomic) IBOutlet UIActivityIndicatorView *ai_refresh;
+@property (nonatomic, retain) NSMutableString *weather;
+@property (nonatomic, retain) NSMutableString *inTemp;
+@property (nonatomic, retain) NSMutableString *outTemp;
 
 @end
