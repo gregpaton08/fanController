@@ -16,6 +16,8 @@
     NSOutputStream *outputStream;
     
     NSThread *updateThread;
+    
+    CATransition *labelAnimation;
 }
 @property (weak, nonatomic) IBOutlet UIButton *bt_onOff;
 @property (weak, nonatomic) IBOutlet UIButton *bt_refresh;

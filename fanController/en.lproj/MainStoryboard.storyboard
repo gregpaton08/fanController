@@ -48,7 +48,7 @@
                                 <color key="textColor" cocoaTouchSystemColor="darkTextColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
-                            <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" text="0" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" enabled="NO" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="JSd-EY-12Z">
+                            <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="right" text="0" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="JSd-EY-12Z">
                                 <rect key="frame" x="156" y="299" width="160" height="100"/>
                                 <constraints>
                                     <constraint firstAttribute="width" constant="160" id="Ua7-xJ-JWm"/>

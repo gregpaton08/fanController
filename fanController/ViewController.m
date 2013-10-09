@@ -30,9 +30,13 @@
     
     host = @"192.168.0.31";
     port = 12345;
-//    [self initNetworkCommunication];
-//    [self getWeather];
-//    [self updateWeather];
+    
+    labelAnimation = [CATransition animation];
+    labelAnimation.delegate = self;
+    labelAnimation.duration = 1.0;
+    labelAnimation.type = kCATransitionFade;
+    labelAnimation.timingFunction = [CAMediaTimingFunction functionWithName:kCAMediaTimingFunctionEaseInEaseOut];
+    
     [_ai_refresh setHidesWhenStopped:true];
     [self clearWeather];
 }
@@ -80,6 +84,7 @@
 #pragma mark - IBAction
 
 - (IBAction)turnOnOff:(id)sender {
+    int timeout = 0;
     [_ai_refresh startAnimating];
     if (FALSE == [self initNetworkCommunication]) {
         [_ai_refresh stopAnimating];
@@ -93,13 +98,15 @@
         
         // Check if confirmation has been sent back
         uint8_t recvdata[64];
-        [inputStream read:recvdata maxLength:64];
-        NSString *str = [NSString stringWithUTF8String:(char*)recvdata];
+        while ([inputStream read:recvdata maxLength:64] < 1 &&
+               timeout < 1000)
+            ++timeout;
+        NSString *str = NULL;
+        str = [NSString stringWithUTF8String:(char*)recvdata];
         if (str == NULL) {
             [_ai_refresh stopAnimating];
             return;
         }
-        NSLog(@"%@\n", str);
         if ([str isEqualToString:@"1"])
             [sender setTitle:@"Turn Off" forState:UIControlStateNormal];
     }
@@ -117,7 +124,6 @@
             [_ai_refresh stopAnimating];
             return;
         }
-        NSLog(@"%@\n", str);
         if ([str isEqualToString:@"2"])
         [sender setTitle:@"Turn On" forState:UIControlStateNormal];
     }
@@ -136,10 +142,13 @@
 - (void)updateWeather {
     [_lb_in setEnabled:true];
     [_lb_out setEnabled:true];
+    [_lb_weather.layer addAnimation:labelAnimation forKey:@"changeTextTransition"];
     [_lb_weather setText:weather];
     [_lb_weather setEnabled:true];
+    [_lb_outTemp.layer addAnimation:labelAnimation forKey:@"changeTextTransition"];
     [_lb_outTemp setText:[NSString stringWithFormat:@"%@\u00B0F", outTemp]];
     [_lb_outTemp setEnabled:true];
+    [_lb_inTemp.layer addAnimation:labelAnimation forKey:@"changeTextTransition"];
     [_lb_inTemp setText:[NSString stringWithFormat:@"%@\u00B0F", inTemp]];
     [_lb_inTemp setEnabled:true];
 }
@@ -153,7 +162,9 @@
 }
 
 - (void)getWeather {
-    [self initNetworkCommunication];
+    if (FALSE == [self initNetworkCommunication])
+        return;
+    
     [self sendString:@"4"];
     uint8_t data[64];
     [inputStream read:data maxLength:64];
