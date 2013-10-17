@@ -19,6 +19,9 @@
                         <subviews>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="jfn-VT-22g">
                                 <rect key="frame" x="200" y="180" width="73" height="30"/>
+                                <accessibility key="accessibilityConfiguration">
+                                    <bool key="isElement" value="NO"/>
+                                </accessibility>
                                 <constraints>
                                     <constraint firstAttribute="width" constant="73" id="YEe-XE-7Oh"/>
                                 </constraints>
@@ -93,6 +96,10 @@
                             </activityIndicatorView>
                         </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="calibratedWhite"/>
+                        <accessibility key="accessibilityConfiguration">
+                            <accessibilityTraits key="traits" none="YES"/>
+                            <bool key="isElement" value="YES"/>
+                        </accessibility>
                         <constraints>
                             <constraint firstItem="vfK-fl-7SS" firstAttribute="leading" secondItem="3" secondAttribute="leading" constant="56" id="7XX-05-qR6"/>
                             <constraint firstItem="tfx-sg-aeH" firstAttribute="trailing" secondItem="vfK-fl-7SS" secondAttribute="trailing" constant="-9" id="CiD-FP-y1O"/>

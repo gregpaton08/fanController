@@ -16,6 +16,7 @@
     NSOutputStream *outputStream;
     
     NSThread *updateThread;
+    NSThread *turnOnOffThread;
     
     CATransition *labelAnimation;
 }

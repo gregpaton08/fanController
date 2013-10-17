@@ -31,6 +31,9 @@
     host = @"192.168.0.31";
     port = 12345;
     
+    // Disable button until state of fan is known
+    [_bt_onOff setEnabled:false];
+    
     labelAnimation = [CATransition animation];
     labelAnimation.delegate = self;
     labelAnimation.duration = 1.0;
@@ -50,12 +53,14 @@
 #pragma mark - Network 
 
 - (BOOL)initNetworkCommunication {
+    NSUInteger ret1 = [inputStream streamStatus];
+    NSUInteger ret2 = [outputStream streamStatus];
     // Check if streams are already open
     // Note: this check assumes the streams will NOT be called from other threads
     //       doesn't check if streams are reading/writing
     if ([inputStream streamStatus] == NSStreamStatusOpen &&
         [outputStream streamStatus] == NSStreamStatusOpen)
-        return TRUE;
+        return YES;
     
     CFReadStreamRef readStream;
     CFWriteStreamRef writeStream;
@@ -69,11 +74,20 @@
     [inputStream open];
     [outputStream open];
     
-    if ([inputStream streamStatus] != 2 ||
-        [outputStream streamStatus] != 2)
-        return FALSE;
+    ret1 = [inputStream streamStatus];
+    ret2 = [outputStream streamStatus];
     
-    return TRUE;
+    if ([inputStream streamStatus] == NSStreamStatusError ||
+        [outputStream streamStatus] == NSStreamStatusError)
+        return NO;
+    
+    if ([inputStream streamStatus] == NSStreamStatusOpening)
+        while ([inputStream streamStatus] != NSStreamStatusOpen);
+    
+    if ([outputStream streamStatus] == NSStreamStatusOpening)
+        while ([outputStream streamStatus] != NSStreamStatusOpen);
+    
+    return YES;
 }
 
 - (void)sendString:(NSString*)str {
@@ -84,59 +98,18 @@
 #pragma mark - IBAction
 
 - (IBAction)turnOnOff:(id)sender {
-    int timeout = 0;
-    [_ai_refresh startAnimating];
-    if (FALSE == [self initNetworkCommunication]) {
-        [_ai_refresh stopAnimating];
-        return;
-    }
-    if ([[sender titleForState:UIControlStateNormal] isEqualToString:@"Turn On"]) {
-        // Send command to turn on
-        NSString *response  = [NSString stringWithFormat:@"1"];
-        NSData *data = [[NSData alloc] initWithData:[response dataUsingEncoding:NSASCIIStringEncoding]];
-        [outputStream write:[data bytes] maxLength:[data length]];
-        
-        // Check if confirmation has been sent back
-        uint8_t recvdata[64];
-        while ([inputStream read:recvdata maxLength:64] < 1 &&
-               timeout < 1000)
-            ++timeout;
-        NSString *str = NULL;
-        str = [NSString stringWithUTF8String:(char*)recvdata];
-        if (str == NULL) {
-            [_ai_refresh stopAnimating];
-            return;
-        }
-        if ([str isEqualToString:@"1"])
-            [sender setTitle:@"Turn Off" forState:UIControlStateNormal];
-    }
-    else {
-        // Send command to turn off
-        NSString *response  = [NSString stringWithFormat:@"2"];
-        NSData *data = [[NSData alloc] initWithData:[response dataUsingEncoding:NSASCIIStringEncoding]];
-        [outputStream write:[data bytes] maxLength:[data length]];
-        
-        // Check if confirmation has been sent back
-        uint8_t recvdata[64];
-        [inputStream read:recvdata maxLength:64];
-        NSString *str = [NSString stringWithUTF8String:(char*)recvdata];
-        if (str == NULL) {
-            [_ai_refresh stopAnimating];
-            return;
-        }
-        if ([str isEqualToString:@"2"])
-        [sender setTitle:@"Turn On" forState:UIControlStateNormal];
-    }
-    [_ai_refresh stopAnimating];
+    turnOnOffThread = [[NSThread alloc] initWithTarget:self selector:@selector(toggleOnOff) object:nil];
+    [updateThread start];
 }
 
 - (IBAction)refresh:(id)sender {
+    if ([updateThread isExecuting])
+        return;
+    
     [self clearWeather];
     updateThread = [[NSThread alloc] initWithTarget:self selector:@selector(update) object:nil];
     [updateThread start];
     [_ai_refresh startAnimating];
-//    [self getWeather];
-//    [self updateWeather];
 }
 
 - (void)updateWeather {
@@ -161,37 +134,88 @@
     [_lb_inTemp setEnabled:false];
 }
 
-- (void)getWeather {
-    if (FALSE == [self initNetworkCommunication])
-        return;
+- (BOOL)getWeather {
+    NSDate *stime = [NSDate date];
+    BOOL netRet = NO;
+    
+    // Allow timeout of 5 seconds
+    while (NO == netRet && [stime timeIntervalSinceNow] > -5.0) {
+        netRet = [self initNetworkCommunication];
+    }
+    
+    if (NO == netRet)
+        return NO;
     
     [self sendString:@"4"];
     uint8_t data[64];
     [inputStream read:data maxLength:64];
     NSString *str = [NSString stringWithUTF8String:(char*)data];
     if (str == NULL)
-        return;
+        return NO;
     
     NSRange otRange = [str rangeOfString:@"OT="];
     NSRange itRange = [str rangeOfString:@"IT="];
     if (otRange.location == NSNotFound || itRange.location == NSNotFound)
-        return;
+        return NO;
     
     [weather setString:[str substringWithRange:NSMakeRange(0, otRange.location)]];
     [outTemp setString:[str substringWithRange:NSMakeRange(otRange.location + 3, 4)]];
     [inTemp setString:[str substringWithRange:NSMakeRange(itRange.location + 3, 4)]];
+    
+    return YES;
 }
 
 #pragma mark - Threading
 
 - (void)update {
-    [self getWeather];
+    if ([self getWeather]) {
+//        [[NSOperationQueue mainQueue] addOperationWithBlock:^{
+//            [self updateWeather];
+//        }];
+//    }
+//    [[NSOperationQueue mainQueue] addOperationWithBlock:^{
+//        [_ai_refresh stopAnimating];
+//    }];
     [self updateWeather];
+    }
     [_ai_refresh stopAnimating];
 }
 
 - (void)toggleOnOff {
+    NSString *response;
+    NSString *title;
+    NSString *str = NULL;
+    int timeout = 0;
     
+    [_ai_refresh startAnimating];
+    
+    if (false == [self initNetworkCommunication]) {
+        [_ai_refresh stopAnimating];
+        return;
+    }
+    
+    if ([[_bt_onOff titleForState:UIControlStateNormal] isEqualToString:@"Turn On"]) {
+        response  = [NSString stringWithFormat:@"1"];
+        title = [NSString stringWithFormat:@"Turn Off"];
+    }
+    else {
+        response  = [NSString stringWithFormat:@"2"];
+        title = [NSString stringWithFormat:@"Turn On"];
+    }
+    
+    NSData *data = [[NSData alloc] initWithData:[response dataUsingEncoding:NSASCIIStringEncoding]];
+    [outputStream write:[data bytes] maxLength:[data length]];
+    
+    // Check if confirmation has been sent back
+    uint8_t recvdata[64];
+    while ([inputStream read:recvdata maxLength:64] < 1 &&
+           timeout < 1000)
+        ++timeout;
+    str = [NSString stringWithUTF8String:(char*)recvdata];
+    if (str != NULL && [str isEqualToString:response])
+        [_bt_onOff setTitle:title forState:UIControlStateNormal];
+    
+    [_ai_refresh stopAnimating];
 }
 
 @end
