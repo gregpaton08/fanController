@@ -169,16 +169,13 @@
 
 - (void)update {
     if ([self getWeather]) {
-//        [[NSOperationQueue mainQueue] addOperationWithBlock:^{
-//            [self updateWeather];
-//        }];
-//    }
-//    [[NSOperationQueue mainQueue] addOperationWithBlock:^{
-//        [_ai_refresh stopAnimating];
-//    }];
-    [self updateWeather];
+        [[NSOperationQueue mainQueue] addOperationWithBlock:^{
+            [self updateWeather];
+        }];
     }
-    [_ai_refresh stopAnimating];
+    [[NSOperationQueue mainQueue] addOperationWithBlock:^{
+        [_ai_refresh stopAnimating];
+    }];
 }
 
 - (void)toggleOnOff {
